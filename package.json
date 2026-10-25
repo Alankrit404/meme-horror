@@ -1,0 +1,17 @@
+{
+  "name": "meme-horrors-lawden-bhojyam",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MEME HORRORS: LAWDEN BHOJYAM - a 2D retro pixel horror game.",
+  "scripts": {
+    "start": "node tools/serve.js",
+    "check": "deno run --allow-read tools/check.js",
+    "docs": "deno run --allow-read --allow-write tools/gen-docs.js",
+    "test": "npm run check && npm run test:smoke",
+    "test:smoke": "node tools/smoke.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.64.1"
+  }
+}

@@ -1,0 +1,295 @@
+/* ============================================================
+   MEME HORRORS: LAWDEN BHOJYAM  -- retro pixel horror UI
+   Everything lives inside a 320x180 virtual screen (#app),
+   scaled with a CSS transform so DOM text stays pixel-crisp.
+   ============================================================ */
+
+:root{
+  --scale: 3;
+  --mono: "Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ink: #e9e2ff;
+  --dim: #9b8ed0;
+  --hot: #ff4d4d;
+  --gold: #ffd24a;
+  --green: #46ff9b;
+  --blue: #6ad1ff;
+}
+
+*{ box-sizing: border-box; margin: 0; padding: 0; }
+
+html,body{
+  width: 100%; height: 100%;
+  background: #04030a;
+  color: var(--ink);
+  font-family: var(--mono);
+  overflow: hidden;
+  -webkit-font-smoothing: none;
+  user-select: none;
+  touch-action: none;
+}
+
+#app{
+  position: absolute; left: 50%; top: 50%;
+  width: 320px; height: 180px;
+  transform: translate(-50%,-50%) scale(var(--scale));
+  transform-origin: center center;
+  background: #000;
+  overflow: hidden;
+  font-size: 6px;
+  line-height: 1.35;
+}
+
+canvas#screen{
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* ---------- CRT layers ---------- */
+#scanlines{
+  position: absolute; inset: 0; pointer-events: none; z-index: 60;
+  background: repeating-linear-gradient(to bottom,
+      rgba(0,0,0,0.32) 0px, rgba(0,0,0,0.32) 1px,
+      rgba(0,0,0,0.00) 1px, rgba(0,0,0,0.00) 3px);
+  mix-blend-mode: multiply;
+  opacity: .75;
+}
+#vig{
+  position: absolute; inset: 0; pointer-events: none; z-index: 61;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(0,0,0,.55) 100%);
+}
+#grain{
+  position: absolute; inset: -20px; pointer-events: none; z-index: 59;
+  opacity: .05;
+  background-image:
+    radial-gradient(rgba(255,255,255,.9) .5px, transparent .6px),
+    radial-gradient(rgba(255,255,255,.9) .5px, transparent .6px);
+  background-size: 3px 3px, 5px 5px;
+  background-position: 0 0, 1px 2px;
+  animation: grainmove .5s steps(3) infinite;
+}
+@keyframes grainmove{
+  0%{ transform: translate(0,0); }
+  33%{ transform: translate(-1px,1px); }
+  66%{ transform: translate(1px,-1px); }
+  100%{ transform: translate(0,0); }
+}
+
+/* ---------- HUD ---------- */
+#hud{
+  position: absolute; inset: 0 0 auto 0; z-index: 20;
+  display: flex; justify-content: space-between;
+  padding: 3px 4px; pointer-events: none;
+  font-size: 6px; text-transform: uppercase; letter-spacing: .5px;
+  text-shadow: 1px 1px 0 #000, 0 0 4px #000;
+}
+#hud .right{ text-align: right; }
+#hud-floor{ color: var(--gold); }
+#hud-obj{ color: var(--dim); max-width: 190px; }
+#hud-tokens{ margin-top: 1px; color: var(--green); letter-spacing: 2px; }
+#hud-status{ color: var(--hot); }
+#hud-powers{ color: var(--blue); margin-top: 1px; }
+
+/* ---------- prompt / subtitles / toasts ---------- */
+#prompt{
+  position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);
+  z-index: 22; padding: 1px 4px;
+  background: rgba(8,4,18,.85); border: 1px solid var(--gold);
+  color: var(--gold); font-size: 6px; white-space: nowrap;
+}
+#subtitle{
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 23;
+  padding: 3px 5px; background: rgba(3,2,8,.82);
+  border-top: 1px solid #6a4bd0;
+  font-size: 6px; text-align: center;
+}
+#sub-speaker{ color: var(--hot); margin-right: 4px; font-weight: bold; }
+#sub-text{ color: var(--ink); }
+#toasts{
+  position: absolute; right: 4px; top: 26px; z-index: 24;
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-end;
+  pointer-events: none;
+}
+.toast{
+  background: rgba(8,4,18,.9); border-left: 2px solid var(--gold);
+  padding: 2px 4px; font-size: 6px; color: var(--ink);
+  animation: toastin .18s steps(2);
+  max-width: 200px;
+}
+.toast.bad{ border-color: var(--hot); color: #ffd9d9; }
+.toast.good{ border-color: var(--green); }
+@keyframes toastin{ from{ transform: translateX(8px); opacity: 0; } to{ transform: none; opacity: 1; } }
+
+/* ---------- ringing phone side prompt ---------- */
+#phone-call{
+  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 88px; padding: 4px; z-index: 26;
+  background: rgba(6,18,11,.94); border: 1px solid var(--green);
+  box-shadow: 0 0 9px rgba(57,255,136,.4);
+  text-align: center;
+  animation: ringpulse .8s steps(2) infinite;
+}
+#phone-call .pc-head{ font-size: 7px; color: var(--green); letter-spacing: 1px; }
+#phone-call .pc-sub{ font-size: 5px; color: #d6ffe9; margin: 2px 0; }
+#phone-call .pc-num{ font-size: 4px; color: #7fbf9f; margin-bottom: 3px; letter-spacing: 1px; }
+.pc-btn{
+  display: block; width: 100%; font-family: var(--mono); font-size: 5px;
+  letter-spacing: 1px; padding: 3px 0; margin-top: 2px; cursor: pointer;
+  background: #06140c; color: #c9ffe4; border: 1px solid #1f7a4c;
+}
+.pc-btn.pick{ color: #b6ffcf; border-color: var(--green); }
+.pc-btn.cut{ color: #ffb3b3; border-color: #a03030; }
+.pc-btn:hover, .pc-btn:focus{ background: #123; outline: none; }
+.pc-btn.pick:hover{ background: #0b2a18; }
+.pc-btn.cut:hover{ background: #2a0b0b; }
+#phone-call .pc-keys{ font-size: 4px; color: #5f8f74; margin-top: 3px; }
+@keyframes ringpulse{
+  0%,100%{ box-shadow: 0 0 3px rgba(57,255,136,.25); }
+  50%{ box-shadow: 0 0 13px rgba(57,255,136,.75); }
+}
+
+/* ---------- overlays ---------- */
+.overlay{
+  position: absolute; inset: 0; z-index: 30;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; padding: 8px; text-align: center;
+  background: rgba(5,3,12,.88);
+}
+.hide{ display: none !important; }
+.blink{ animation: blink 1s steps(2) infinite; }
+@keyframes blink{ 50%{ opacity: .15; } }
+
+.panel{
+  border: 1px solid #6a4bd0; background: #0a0616;
+  box-shadow: inset 0 0 0 1px #1b1038, 0 0 0 1px #000;
+  padding: 6px 7px; max-width: 290px; min-width: 180px;
+}
+.panel.wide{ min-width: 250px; }
+.panel-title{ color: var(--gold); font-size: 8px; letter-spacing: 1px; margin-bottom: 4px; }
+.panel-body{ font-size: 6px; color: var(--ink); text-align: left; }
+.panel-body p{ margin: 3px 0; }
+.panel-body b{ color: var(--gold); }
+.panel-body .k{ color: var(--blue); }
+.panel-body .bad{ color: var(--hot); }
+.panel-actions{ display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+
+.btn{
+  font-family: var(--mono); font-size: 6px; letter-spacing: 1px;
+  text-transform: uppercase; text-align: left;
+  padding: 3px 5px; color: var(--ink); background: #120a22;
+  border: 1px solid #46307e; cursor: pointer;
+}
+.btn:hover, .btn:focus{ background: #241050; border-color: var(--gold); color: #fff; outline: none; }
+.btn.primary{ color: #06110a; background: var(--green); border-color: #0e6b3f; font-weight: bold; }
+.btn.primary:hover{ background: #9dffcd; }
+.btn.danger{ color: #ffdede; border-color: #7a2020; }
+
+/* ---------- title ---------- */
+.title-art{ text-align: center; }
+.title-art h1{
+  font-size: 22px; line-height: .95; letter-spacing: 2px;
+  color: #fff; text-shadow: 2px 2px 0 #7a1010, 3px 3px 0 #000;
+  animation: flick 4.2s steps(2) infinite;
+}
+.title-art h1 span{ display: block; color: var(--hot); text-shadow: 2px 2px 0 #000; }
+@keyframes flick{ 0%,88%,100%{ opacity: 1; } 89%{ opacity: .5; } 91%{ opacity: 1; } 93%{ opacity: .35; } 95%{ opacity: 1; } }
+.title-art .sub{ font-size: 6px; color: var(--dim); margin: 4px 0 2px; letter-spacing: 1px; }
+.menu{ display: flex; flex-direction: column; gap: 3px; width: 150px; }
+.tat{ font-size: 5px; color: #6f5fae; margin-top: 4px; letter-spacing: 1px; }
+
+/* ---------- modal ---------- */
+.modal-panel{ min-width: 210px; }
+.speaker{ color: var(--hot); font-size: 7px; letter-spacing: 1px; margin-bottom: 3px; }
+.modal-text{ font-size: 6px; white-space: pre-wrap; }
+#modal-imgwrap{ margin-bottom: 4px; }
+#modal-imgwrap img{ max-width: 240px; max-height: 90px; image-rendering: pixelated; border: 1px solid #46307e; }
+.hint{ font-size: 5px; color: var(--dim); margin-top: 3px; }
+#modal-input, #math-input{
+  font-family: var(--mono); font-size: 7px; letter-spacing: 2px; text-transform: uppercase;
+  background: #05030c; color: var(--green); border: 1px solid #46307e;
+  padding: 3px 4px; width: 100%; margin-top: 4px; outline: none;
+}
+#modal-input:focus, #math-input:focus{ border-color: var(--gold); }
+.choices{ display: flex; flex-direction: column; gap: 3px; margin-top: 5px; }
+
+/* ---------- placeholder for images you have not uploaded yet ---------- */
+.ph{
+  border: 1px dashed #6a4bd0; background: repeating-linear-gradient(45deg,#150a2a 0 4px,#100722 4px 8px);
+  color: #c9b8ff; font-size: 5px; text-align: left; padding: 5px;
+  max-width: 250px; min-height: 34px; white-space: pre-wrap; word-break: break-word;
+}
+.ph b{ color: var(--gold); display: block; margin-bottom: 2px; }
+
+/* ---------- photo overlay ---------- */
+#photo{ background: rgba(2,1,5,.96); gap: 4px; }
+#photo img{ max-width: 268px; max-height: 120px; image-rendering: pixelated; border: 1px solid #46307e; }
+#photo figcaption{ font-size: 5px; color: var(--dim); margin-top: 3px; max-width: 268px; }
+.photo-hint{ font-size: 5px; color: #5d4f96; }
+#photo img.shake{ animation: shakeimg .12s steps(2) infinite; }
+@keyframes shakeimg{ 0%{ transform: translate(-1px,0) } 50%{ transform: translate(1px,1px) } 100%{ transform: translate(0,-1px) } }
+
+/* ---------- DUCK YOU (tab switch during the FINAL QUESTION) ---------- */
+#duckyou{ background: rgba(28,0,0,.93); z-index: 70; gap: 5px; }
+#duckyou #duck-imgwrap img{ max-width: 210px; max-height: 72px; image-rendering: pixelated; border: 1px solid #7a1010; }
+#duckyou #duck-imgwrap .ph{
+  max-width: 210px; min-height: 24px; border-color: #7a2020; color: #ffc9c9;
+  background: repeating-linear-gradient(45deg,#2a0a0a 0 4px,#1c0505 4px 8px);
+}
+#duckyou .duck-text{
+  font-size: 30px; line-height: 1; letter-spacing: 4px; font-weight: bold;
+  color: #ff2b2b; text-shadow: 3px 3px 0 #000, 0 0 14px #ff0000;
+  animation: duckshake .09s steps(2) infinite;
+}
+#duckyou .duck-sub{ font-size: 6px; color: #ffb3b3; }
+@keyframes duckshake{
+  0%{ transform: translate(-2px,1px) }
+  50%{ transform: translate(2px,-1px) }
+  100%{ transform: translate(-1px,2px) }
+}
+
+/* ---------- math lock ---------- */
+#math{ background: rgba(20,0,0,.9); }
+#math-grid{ position: absolute; inset: 0; overflow: hidden; }
+#math-grid .eq{
+  position: absolute; font-size: 8px; color: #ff6a6a; text-shadow: 1px 1px 0 #000;
+  animation: floatyt 2.4s linear infinite; opacity: .85;
+}
+@keyframes floatyt{ from{ transform: translateY(6px) } to{ transform: translateY(-24px) } }
+#math-box{
+  position: relative; z-index: 2; border: 1px solid var(--hot); background: #120306;
+  padding: 6px 8px; min-width: 150px; box-shadow: 0 0 12px #7a1010;
+}
+.math-kicker{ color: var(--hot); font-size: 6px; letter-spacing: 1px; }
+#math-q{ font-size: 14px; color: #fff; margin: 4px 0 2px; }
+.bar{ height: 3px; background: #2a0a0a; margin-top: 4px; }
+.bar i{ display: block; height: 100%; width: 100%; background: var(--hot); }
+#math-input{ text-align: center; }
+
+/* ---------- cutscene ---------- */
+.kicker{ font-size: 5px; color: var(--dim); letter-spacing: 2px; }
+.cut-title{ font-size: 11px; color: var(--gold); margin: 3px 0; letter-spacing: 1px; }
+#cutscene .panel-body{ text-align: center; color: var(--ink); }
+
+/* ---------- fade ---------- */
+#fade{
+  position: absolute; inset: 0; background: #000; z-index: 55;
+  opacity: 0; pointer-events: none; transition: opacity .35s linear;
+}
+#fade.on{ opacity: 1; }
+
+/* ---------- touch dpad ---------- */
+#dpad{ position: absolute; inset: 0; z-index: 25; pointer-events: none; }
+#dpad .dbtn{
+  position: absolute; width: 20px; height: 20px; pointer-events: auto;
+  background: rgba(20,10,40,.55); color: #cbb9ff; border: 1px solid #46307e;
+  font-family: var(--mono); font-size: 7px; line-height: 1;
+}
+#dpad .dbtn:active{ background: rgba(70,40,140,.8); }
+#dpad .dbtn[data-key="up"]{ left: 28px; bottom: 34px; }
+#dpad .dbtn[data-key="down"]{ left: 28px; bottom: 10px; }
+#dpad .dbtn[data-key="left"]{ left: 6px; bottom: 22px; }
+#dpad .dbtn[data-key="right"]{ left: 50px; bottom: 22px; }
+#dpad .dbtn[data-key="e"]{ right: 22px; bottom: 12px; }
+#dpad .dbtn[data-key="q"]{ right: 4px; bottom: 30px; }
+
